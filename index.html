@@ -15,7 +15,25 @@
   </head>
   <body>
     <div class="recipe-finder-container">
-      <h1>Recipe Finder</h1>
+      
+<h1>Recipe Finder</h1>
+
+<nav class="account-nav">
+  <div id="guest-menu">
+    <a href="login.html">Login</a>
+    <a href="signup.html">Sign Up</a>
+  </div>
+
+  <div id="user-menu" class="hidden">
+    <span id="user-email"></span>
+    <a href="favorites.html">♥ My Favourites</a>
+    <button id="logout-button" type="button">Logout</button>
+    <button id="delete-account-button" type="button">
+      Delete Account
+    </button>
+  </div>
+</nav>
+
 
       <form id="search-form" class="search-box">
         <input
@@ -46,6 +64,6 @@
         <div id="recipe-details-content"></div>
       </div>
     </div>
-    <script src="main.js"></script>
+    <script type="module" src="main.js"></script>
   </body>
 </html>

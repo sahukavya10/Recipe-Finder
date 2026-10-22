@@ -1,0 +1,95 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up - Recipe Finder</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .auth-box {
+      max-width: 420px;
+      margin: 60px auto;
+      padding: 30px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px #0001;
+      text-align: center;
+    }
+    .auth-box input {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      margin: 15px 0;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font: inherit;
+    }
+    .auth-box button {
+      width: 100%;
+      padding: 12px;
+      border: 0;
+      border-radius: 6px;
+      background: #4caf50;
+      color: white;
+      font: inherit;
+      cursor: pointer;
+    }
+    .auth-box p { margin-top: 18px; }
+    #message { overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+  <div class="auth-box">
+    <h1>Create Account</h1>
+    <p>Join Recipe Finder to save your favourite recipes.</p>
+
+    <form id="signup-form">
+      <input id="email" type="email" placeholder="Email address"
+             autocomplete="email" required>
+      <input id="password" type="password"
+             placeholder="Password (at least 6 characters)"
+             autocomplete="new-password" minlength="6" required>
+      <button type="submit">Sign Up</button>
+    </form>
+
+    <p id="message" role="status"></p>
+    <p>Already registered? <a href="login.html">Log in</a></p>
+    <p><a href="index.html">Back to recipes</a></p>
+  </div>
+
+  <script type="module">
+    import { auth } from "./firebase.js";
+    import {
+      createUserWithEmailAndPassword
+    } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+
+    const form = document.getElementById("signup-form");
+    const message = document.getElementById("message");
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      message.textContent = "Creating your account...";
+
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      try {
+        await createUserWithEmailAndPassword(auth, email, password);
+        message.textContent = "Account created successfully! Redirecting...";
+        window.location.href = "index.html";
+      } catch (error) {
+        message.textContent =
+          error.code === "auth/email-already-in-use"
+            ? "This email is already registered. Please log in."
+            : error.code === "auth/weak-password"
+            ? "Please choose a stronger password."
+            : error.code === "auth/invalid-email"
+            ? "Please enter a valid email address."
+            : "Could not create account. Please check your settings and try again.";
+        console.error(error);
+      }
+    });
+  </script>
+</body>
+</html>

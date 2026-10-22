@@ -275,3 +275,78 @@ h1 {
   background-color: #d1ecf1;
   border: 1px solid #bee5eb;
 }
+
+/* Account navigation */
+.account-nav {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto 25px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+#guest-menu,
+#user-menu {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.account-nav a,
+.account-nav button {
+  display: inline-block;
+  padding: 9px 15px;
+  border: none;
+  border-radius: 7px;
+  font: inherit;
+  font-size: 0.9rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.account-nav a {
+  background: #4caf50;
+  color: white;
+}
+
+.account-nav button {
+  background: #e9ecef;
+  color: #343a40;
+}
+
+.account-nav #delete-account-button {
+  background: #dc3545;
+  color: white;
+}
+
+#user-email {
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.bookmark-button {
+  margin: 0 15px 15px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 7px;
+  background: #e8f5e9;
+  color: #256b2b;
+  font: inherit;
+  cursor: pointer;
+}
+
+.bookmark-button:hover {
+  background: #c8e6c9;
+}
+
+.bookmark-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}

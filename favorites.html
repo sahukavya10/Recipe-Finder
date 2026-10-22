@@ -1,0 +1,359 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Favourites - Recipe Finder</title>
+  <link rel="stylesheet" href="style.css">
+
+  <style>
+    .favorites-header {
+      max-width: 1200px;
+      margin: 0 auto 25px;
+      text-align: center;
+    }
+
+    .favorites-header h1 {
+      margin-bottom: 10px;
+    }
+
+    .favorites-nav {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin: 20px 0;
+    }
+
+    .favorites-nav a,
+    .favorites-nav button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 7px;
+      background: #4caf50;
+      color: white;
+      text-decoration: none;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .favorites-nav button {
+      background: #6c757d;
+    }
+
+    .favorite-card {
+      overflow: hidden;
+    }
+
+    .favorite-card img {
+      width: 100%;
+      height: 220px;
+      object-fit: cover;
+    }
+
+    .favorite-card h3 {
+      padding: 12px 15px;
+    }
+
+    .favorite-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 0 15px 15px;
+    }
+
+    .favorite-actions button {
+      flex: 1;
+      min-width: 100px;
+      padding: 9px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font: inherit;
+    }
+
+    .view-recipe {
+      background: #4caf50;
+      color: white;
+    }
+
+    .remove-favorite {
+      background: #f8d7da;
+      color: #842029;
+    }
+
+    .empty-favorites {
+      text-align: center;
+      margin: 40px auto;
+      max-width: 600px;
+    }
+
+    .empty-favorites a {
+      color: #2e7d32;
+    }
+
+    .favorite-status {
+      text-align: center;
+      margin: 20px auto;
+    }
+
+    .favorite-details {
+      white-space: pre-line;
+      line-height: 1.8;
+    }
+  </style>
+</head>
+
+<body>
+  <header class="favorites-header">
+    <h1>♥ My Favourites</h1>
+    <p>Your personally saved recipes, all in one place.</p>
+
+    <nav class="favorites-nav">
+      <a href="index.html">← Back to Recipes</a>
+      <button id="logout-button" type="button">Logout</button>
+    </nav>
+  </header>
+
+  <p id="status" class="favorite-status">Loading your favourites...</p>
+
+  <main>
+    <div id="favorites-grid" class="results-grid"></div>
+
+    <div id="empty-state" class="empty-favorites" hidden>
+      <h2>No favourites yet!</h2>
+      <p>Search for recipes and bookmark the ones you love.</p>
+      <p><a href="index.html">Explore recipes</a></p>
+    </div>
+  </main>
+
+  <div id="recipe-modal" class="modal-container hidden">
+    <div class="modal-content">
+      <button id="modal-close" class="modal-close-btn" type="button">+</button>
+      <div id="recipe-details-content"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { auth, db } from "./firebase.js";
+
+    import {
+      onAuthStateChanged,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+
+    import {
+      collection,
+      getDocs,
+      deleteDoc
+    } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
+
+    const grid = document.getElementById("favorites-grid");
+    const status = document.getElementById("status");
+    const emptyState = document.getElementById("empty-state");
+    const logoutButton = document.getElementById("logout-button");
+    const modal = document.getElementById("recipe-modal");
+    const modalContent = document.getElementById("recipe-details-content");
+
+    let currentUser = null;
+
+    // Check login status before loading favourites
+    onAuthStateChanged(auth, async (user) => {
+      currentUser = user;
+
+      if (!user) {
+        window.location.replace("login.html");
+        return;
+      }
+
+      await loadFavorites();
+    });
+
+    // Load bookmarks belonging to the logged-in user
+    async function loadFavorites() {
+      grid.replaceChildren();
+      emptyState.hidden = true;
+      status.textContent = "Loading your favourites...";
+
+      try {
+        const bookmarksRef = collection(
+          db,
+          "users",
+          currentUser.uid,
+          "bookmarks"
+        );
+
+        const snapshot = await getDocs(bookmarksRef);
+
+        if (snapshot.empty) {
+          status.textContent = "";
+          emptyState.hidden = false;
+          return;
+        }
+
+        status.textContent = `${snapshot.size} saved recipe(s)`;
+        emptyState.hidden = true;
+
+        snapshot.forEach((bookmark) => {
+          const recipe = bookmark.data();
+          const card = document.createElement("article");
+
+          card.className = "recipe-item favorite-card";
+
+          const image = document.createElement("img");
+          image.src = recipe.image;
+          image.alt = recipe.name;
+          image.loading = "lazy";
+
+          const title = document.createElement("h3");
+          title.textContent = recipe.name;
+
+          const actions = document.createElement("div");
+          actions.className = "favorite-actions";
+
+          const viewButton = document.createElement("button");
+          viewButton.className = "view-recipe";
+          viewButton.textContent = "View Recipe";
+
+          viewButton.addEventListener("click", () => {
+            getRecipeDetails(recipe.recipeId);
+          });
+
+          const removeButton = document.createElement("button");
+          removeButton.className = "remove-favorite";
+          removeButton.textContent = "♥ Remove";
+
+          removeButton.addEventListener("click", async () => {
+            const confirmed = confirm(
+              `Remove "${recipe.name}" from your favourites?`
+            );
+
+            if (!confirmed) return;
+
+            removeButton.disabled = true;
+
+            try {
+              await deleteDoc(bookmark.ref);
+              await loadFavorites();
+            } catch (error) {
+              console.error("Remove bookmark error:", error);
+              alert("Could not remove this recipe. Please try again.");
+              removeButton.disabled = false;
+            }
+          });
+
+          actions.append(viewButton, removeButton);
+          card.append(image, title, actions);
+          grid.appendChild(card);
+        });
+      } catch (error) {
+        console.error("Loading favourites error:", error);
+        status.textContent =
+          "Could not load favourites. Please check your connection and database rules.";
+      }
+    }
+
+    // Open the full recipe details from TheMealDB
+    async function getRecipeDetails(id) {
+      modalContent.textContent = "Loading recipe details...";
+      modal.classList.remove("hidden");
+      document.body.style.overflow = "hidden";
+
+      try {
+        const response = await fetch(
+          `https://www.themealdb.com/api/json/v1/1/lookup.php?i=${encodeURIComponent(id)}`
+        );
+
+        if (!response.ok) throw new Error("Recipe request failed");
+
+        const data = await response.json();
+        const recipe = data.meals?.[0];
+
+        if (!recipe) {
+          modalContent.textContent = "Recipe details are unavailable.";
+          return;
+        }
+
+        const title = document.createElement("h2");
+        title.textContent = recipe.strMeal;
+
+        const image = document.createElement("img");
+        image.src = recipe.strMealThumb;
+        image.alt = recipe.strMeal;
+
+        const category = document.createElement("p");
+        category.textContent =
+          `Category: ${recipe.strCategory || "Not available"}`;
+
+        const area = document.createElement("p");
+        area.textContent =
+          `Cuisine: ${recipe.strArea || "Not available"}`;
+
+        const heading = document.createElement("h3");
+        heading.textContent = "Ingredients";
+
+        const list = document.createElement("ul");
+
+        for (let i = 1; i <= 20; i++) {
+          const ingredient = recipe[`strIngredient${i}`]?.trim();
+          const measure = recipe[`strMeasure${i}`]?.trim();
+
+          if (!ingredient) break;
+
+          const item = document.createElement("li");
+          item.textContent = `${measure ? measure + " " : ""}${ingredient}`;
+          list.appendChild(item);
+        }
+
+        const instructionsHeading = document.createElement("h3");
+        instructionsHeading.textContent = "Instructions";
+
+        const instructions = document.createElement("p");
+        instructions.className = "favorite-details";
+        instructions.textContent =
+          recipe.strInstructions || "Instructions unavailable.";
+
+        modalContent.replaceChildren(
+          title,
+          image,
+          category,
+          area,
+          heading,
+          list,
+          instructionsHeading,
+          instructions
+        );
+      } catch (error) {
+        console.error("Recipe details error:", error);
+        modalContent.textContent =
+          "Could not load the recipe. Please try again.";
+      }
+    }
+
+    function closeModal() {
+      modal.classList.add("hidden");
+      document.body.style.overflow = "";
+    }
+
+    document.getElementById("modal-close").addEventListener(
+      "click",
+      closeModal
+    );
+
+    modal.addEventListener("click", (event) => {
+      if (event.target === modal) closeModal();
+    });
+
+    logoutButton.addEventListener("click", async () => {
+      try {
+        await signOut(auth);
+        window.location.replace("login.html");
+      } catch (error) {
+        console.error("Logout error:", error);
+        alert("Could not log out. Please try again.");
+      }
+    });
+  </script>
+</body>
+</html>
